@@ -1,15 +1,20 @@
 package com.beemdevelopment.aegis.ui;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
+import android.icu.text.SimpleDateFormat;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -19,6 +24,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.view.ActionMode;
 import androidx.appcompat.widget.SearchView;
+import androidx.core.app.ActivityCompat;
 
 import com.beemdevelopment.aegis.AegisApplication;
 import com.beemdevelopment.aegis.CancelAction;
@@ -46,9 +52,13 @@ import com.google.zxing.Reader;
 import com.google.zxing.Result;
 import com.google.zxing.common.HybridBinarizer;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.TreeSet;
 
@@ -500,7 +510,7 @@ public class MainActivity extends AegisActivity implements EntryListView.Listene
     }
 
     private void deleteEntries(List<VaultEntry> entries) {
-        for (VaultEntry entry: entries) {
+        for (VaultEntry entry : entries) {
             VaultEntry oldEntry = _vault.removeEntry(entry);
             _entryListView.removeEntry(oldEntry);
         }
@@ -558,9 +568,45 @@ public class MainActivity extends AegisActivity implements EntryListView.Listene
         return true;
     }
 
+    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+    };
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case R.id.action_quicksave: {
+                try {
+                    if (!_vault.isLoaded() || _vault.isLocked()) {
+                        return false;
+                    }
+
+                    SimpleDateFormat dtfmt = new SimpleDateFormat("yyyy.MM.dd-HH:mm:ss");
+                    String dt = dtfmt.format(new Date());
+                    String dirname = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/xa";
+                    String filename = dirname + "/qs-" + dt;
+                    File sdir = new File(dirname);
+                    sdir.mkdirs();
+                    File sfile = new File(filename);
+                    int permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                    if (permission != PackageManager.PERMISSION_GRANTED) {
+                        // We don't have permission so prompt the user
+                        ActivityCompat.requestPermissions(
+                                this,
+                                PERMISSIONS_STORAGE,
+                                REQUEST_EXTERNAL_STORAGE
+                        );
+                    }
+                    FileOutputStream st = new FileOutputStream(sfile);
+                    _vault.export(st, true);
+                    Toast.makeText(this, "Saved.", Toast.LENGTH_SHORT).show();
+                } catch (IOException | VaultManagerException e) {
+                    Toast.makeText(this, R.string.exporting_vault_error, Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            }
             case R.id.action_settings: {
                 Intent intent = new Intent(this, PreferencesActivity.class);
                 startActivityForResult(intent, CODE_PREFERENCES);
@@ -761,56 +807,56 @@ public class MainActivity extends AegisActivity implements EntryListView.Listene
     }
 
     private class ActionModeCallbacks implements ActionMode.Callback {
-            @Override
-            public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-                MenuInflater inflater = mode.getMenuInflater();
-                inflater.inflate(R.menu.menu_action_mode, menu);
-                return true;
-            }
+        @Override
+        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+            MenuInflater inflater = mode.getMenuInflater();
+            inflater.inflate(R.menu.menu_action_mode, menu);
+            return true;
+        }
 
-            @Override
-            public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-                return false;
-            }
+        @Override
+        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+            return false;
+        }
 
-            @Override
-            public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-                switch (item.getItemId()) {
-                    case R.id.action_copy:
-                        copyEntryCode(_selectedEntries.get(0));
-                        mode.finish();
-                        return true;
+        @Override
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+            switch (item.getItemId()) {
+                case R.id.action_copy:
+                    copyEntryCode(_selectedEntries.get(0));
+                    mode.finish();
+                    return true;
 
-                    case R.id.action_edit:
-                        startEditProfileActivity(CODE_EDIT_ENTRY, _selectedEntries.get(0), false);
-                        mode.finish();
-                        return true;
+                case R.id.action_edit:
+                    startEditProfileActivity(CODE_EDIT_ENTRY, _selectedEntries.get(0), false);
+                    mode.finish();
+                    return true;
 
-                    case R.id.action_delete:
-                        Dialogs.showDeleteEntriesDialog(MainActivity.this, (d, which) -> {
-                            deleteEntries(_selectedEntries);
+                case R.id.action_delete:
+                    Dialogs.showDeleteEntriesDialog(MainActivity.this, (d, which) -> {
+                        deleteEntries(_selectedEntries);
 
-                            for (VaultEntry entry : _selectedEntries) {
-                                if (entry.getGroup() != null) {
-                                    if (!_vault.getGroups().contains(entry.getGroup())) {
-                                        updateGroupFilterMenu();
-                                    }
+                        for (VaultEntry entry : _selectedEntries) {
+                            if (entry.getGroup() != null) {
+                                if (!_vault.getGroups().contains(entry.getGroup())) {
+                                    updateGroupFilterMenu();
                                 }
                             }
+                        }
 
-                            mode.finish();
-                        }, _selectedEntries.size());
-                        return true;
-                    default:
-                        return false;
-                }
+                        mode.finish();
+                    }, _selectedEntries.size());
+                    return true;
+                default:
+                    return false;
             }
+        }
 
-            @Override
-            public void onDestroyActionMode(ActionMode mode) {
-                _entryListView.setActionModeState(false, null);
-                _selectedEntries.clear();
-                _actionMode = null;
-            }
+        @Override
+        public void onDestroyActionMode(ActionMode mode) {
+            _entryListView.setActionModeState(false, null);
+            _selectedEntries.clear();
+            _actionMode = null;
+        }
     }
 }
