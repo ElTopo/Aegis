@@ -583,7 +583,7 @@ public class MainActivity extends AegisActivity implements EntryListView.Listene
                         return false;
                     }
 
-                    SimpleDateFormat dtfmt = new SimpleDateFormat("yyyy.MM.dd-HH:mm:ss");
+                    SimpleDateFormat dtfmt = new SimpleDateFormat("yyyyMMdd-HHmmss");
                     String dt = dtfmt.format(new Date());
                     String dirname = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/xa";
                     String filename = dirname + "/qs-" + dt;
