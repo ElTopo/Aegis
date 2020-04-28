@@ -109,6 +109,7 @@ public class MainActivity extends AegisActivity implements EntryListView.Listene
         // set up the entry view
         _entryListView = (EntryListView) getSupportFragmentManager().findFragmentById(R.id.key_profiles);
         _entryListView.setListener(this);
+        _entryListView.setCodeGroupSize(getPreferences().getCodeGroupSize());
         _entryListView.setShowAccountName(getPreferences().isAccountNameVisible());
         _entryListView.setSearchAccountName(getPreferences().isSearchAccountNameEnabled());
         _entryListView.setHighlightEntry(getPreferences().isEntryHighlightEnabled());
@@ -230,12 +231,14 @@ public class MainActivity extends AegisActivity implements EntryListView.Listene
             recreate();
         } else if (data.getBooleanExtra("needsRefresh", false)) {
             boolean showAccountName = getPreferences().isAccountNameVisible();
+            int codeGroupSize = getPreferences().getCodeGroupSize();
             boolean searchAccountName = getPreferences().isSearchAccountNameEnabled();
             boolean highlightEntry = getPreferences().isEntryHighlightEnabled();
             boolean tapToReveal = getPreferences().isTapToRevealEnabled();
             int tapToRevealTime = getPreferences().getTapToRevealTime();
             ViewMode viewMode = getPreferences().getCurrentViewMode();
             _entryListView.setShowAccountName(showAccountName);
+            _entryListView.setCodeGroupSize(codeGroupSize);
             _entryListView.setSearchAccountName(searchAccountName);
             _entryListView.setHighlightEntry(highlightEntry);
             _entryListView.setTapToReveal(tapToReveal);
@@ -803,7 +806,6 @@ public class MainActivity extends AegisActivity implements EntryListView.Listene
         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
         ClipData clip = ClipData.newPlainText("text/plain", entry.getInfo().getOtp());
         clipboard.setPrimaryClip(clip);
-        Toast.makeText(this, getString(R.string.code_copied), Toast.LENGTH_SHORT).show();
     }
 
     private class ActionModeCallbacks implements ActionMode.Callback {

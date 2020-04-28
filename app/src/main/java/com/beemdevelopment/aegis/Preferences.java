@@ -3,6 +3,7 @@ package com.beemdevelopment.aegis;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
+import android.net.Uri;
 import android.os.Build;
 import android.preference.PreferenceManager;
 
@@ -60,6 +61,14 @@ public class Preferences {
         return _prefs.getBoolean("pref_account_name", true);
     }
 
+    public int getCodeGroupSize() {
+        if (_prefs.getBoolean("pref_code_group_size", false)) {
+            return 2;
+        } else {
+            return 3;
+        }
+    }
+
     public boolean isIntroDone() {
         return _prefs.getBoolean("pref_intro", false);
     }
@@ -89,7 +98,7 @@ public class Preferences {
     }
 
     public Theme getCurrentTheme() {
-        return Theme.fromInteger(_prefs.getInt("pref_current_theme", 0));
+        return Theme.fromInteger(_prefs.getInt("pref_current_theme", Theme.SYSTEM.ordinal()));
     }
 
     public void setCurrentTheme(Theme theme) {
@@ -120,5 +129,34 @@ public class Preferences {
         }
 
         return new Locale(lang);
+    }
+
+    public boolean isBackupsEnabled() {
+        return _prefs.getBoolean("pref_backups", false);
+    }
+
+    public void setIsBackupsEnabled(boolean enabled) {
+        _prefs.edit().putBoolean("pref_backups", enabled).apply();
+    }
+
+    public Uri getBackupsLocation() {
+        String str = _prefs.getString("pref_backups_location", null);
+        if (str != null) {
+            return Uri.parse(str);
+        }
+
+        return null;
+    }
+
+    public void setBackupsLocation(Uri location) {
+        _prefs.edit().putString("pref_backups_location", location == null ? null : location.toString()).apply();
+    }
+
+    public int getBackupsVersionCount() {
+        return _prefs.getInt("pref_backups_versions", 5);
+    }
+
+    public void setBackupsVersionCount(int versions) {
+        _prefs.edit().putInt("pref_backups_versions", versions).apply();
     }
 }

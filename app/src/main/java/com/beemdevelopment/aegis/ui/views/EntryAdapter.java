@@ -28,6 +28,7 @@ public class EntryAdapter extends RecyclerView.Adapter<EntryHolder> implements I
     private List<VaultEntry> _shownEntries;
     private List<VaultEntry> _selectedEntries;
     private VaultEntry _focusedEntry;
+    private int _codeGroupSize;
     private boolean _showAccountName;
     private boolean _searchAccountName;
     private boolean _highlightEntry;
@@ -58,6 +59,10 @@ public class EntryAdapter extends RecyclerView.Adapter<EntryHolder> implements I
             holder.destroy();
         }
         _view = null;
+    }
+
+    public void setCodeGroupSize(int codeGroupeSize) {
+        _codeGroupSize = codeGroupeSize;
     }
 
     public void setShowAccountName(boolean showAccountName) {
@@ -304,12 +309,12 @@ public class EntryAdapter extends RecyclerView.Adapter<EntryHolder> implements I
     @Override
     public void onBindViewHolder(final EntryHolder holder, int position) {
         VaultEntry entry = _shownEntries.get(position);
-        holder.setFocused(_selectedEntries.contains(entry));
 
         boolean hidden = _tapToReveal && entry != _focusedEntry;
         boolean dimmed = _highlightEntry && _focusedEntry != null && _focusedEntry != entry;
         boolean showProgress = !isPeriodUniform() && entry.getInfo() instanceof TotpInfo;
-        holder.setData(entry, _showAccountName, showProgress, hidden, dimmed);
+        holder.setData(entry, _codeGroupSize, _showAccountName, showProgress, hidden, dimmed);
+        holder.setFocused(_selectedEntries.contains(entry));
         holder.loadIcon(_view);
 
         holder.itemView.setOnClickListener(new View.OnClickListener() {
@@ -318,6 +323,8 @@ public class EntryAdapter extends RecyclerView.Adapter<EntryHolder> implements I
                 boolean handled = false;
 
                 if (_selectedEntries.isEmpty()) {
+                    holder.animateCopyText();
+
                     if (_highlightEntry || _tapToReveal) {
                         if (_focusedEntry == entry) {
                             resetFocus();
@@ -330,9 +337,9 @@ public class EntryAdapter extends RecyclerView.Adapter<EntryHolder> implements I
                     if (_selectedEntries.contains(entry)) {
                         _view.onDeselect(entry);
                         removeSelectedEntry(entry);
-                        holder.setFocused(false);
+                        holder.setFocusedAndAnimate(false);
                     } else {
-                        holder.setFocused(true);
+                        holder.setFocusedAndAnimate(true);
                         addSelectedEntry(entry);
                         _view.onSelect(entry);
                     }
@@ -348,7 +355,7 @@ public class EntryAdapter extends RecyclerView.Adapter<EntryHolder> implements I
             public boolean onLongClick(View v) {
                 int position = holder.getAdapterPosition();
                 if (_selectedEntries.isEmpty()) {
-                    holder.setFocused(true);
+                    holder.setFocusedAndAnimate(true);
                 }
 
                 return _view.onLongEntryClick(_shownEntries.get(position));
@@ -462,18 +469,24 @@ public class EntryAdapter extends RecyclerView.Adapter<EntryHolder> implements I
     }
 
     public void addSelectedEntry(VaultEntry entry) {
-        if (entry == null) {
-            for (VaultEntry vaultEntry: _selectedEntries) {
-                notifyItemChanged(_shownEntries.indexOf(vaultEntry));
-            }
-
-            _selectedEntries.clear();
-            return;
-        } else if (_highlightEntry) {
+        if (_highlightEntry) {
             resetFocus();
         }
 
         _selectedEntries.add(entry);
+    }
+
+    public void deselectAllEntries() {
+        for (VaultEntry entry: _selectedEntries) {
+            for (EntryHolder holder : _holders) {
+                if (holder.getEntry() == entry) {
+                    holder.setFocusedAndAnimate(false);
+                    break;
+                }
+            }
+        }
+
+        _selectedEntries.clear();
     }
 
     public boolean isDragAndDropAllowed() {

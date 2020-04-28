@@ -139,7 +139,12 @@ public class EntryListView extends Fragment implements EntryAdapter.Listener {
     public void setActionModeState(boolean enabled, VaultEntry entry) {
         _touchCallback.setSelectedEntry(entry);
         _touchCallback.setIsLongPressDragEnabled(enabled && _adapter.isDragAndDropAllowed());
-        _adapter.addSelectedEntry(entry);
+
+        if (enabled) {
+            _adapter.addSelectedEntry(entry);
+        } else {
+            _adapter.deselectAllEntries();
+        }
     }
 
     public void setSortCategory(SortCategory sortCategory, boolean apply) {
@@ -216,6 +221,10 @@ public class EntryListView extends Fragment implements EntryAdapter.Listener {
             _progressBar.setVisibility(View.GONE);
             _refresher.stop();
         }
+    }
+
+    public void setCodeGroupSize(int codeGrouping) {
+        _adapter.setCodeGroupSize(codeGrouping);
     }
 
     public void setShowAccountName(boolean showAccountName) {
